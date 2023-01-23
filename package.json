@@ -1,0 +1,33 @@
+{
+  "name": "staking",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "npx hardhat test",
+    "deploy-bsc-test": "npx hardhat run scripts/deploy.js --network bsc_test",
+    "deploy-goerli": "npx hardhat run scripts/deploy.js --network goerli"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cacopsaspidephorus/staking.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/cacopsaspidephorus/staking/issues"
+  },
+  "homepage": "https://github.com/cacopsaspidephorus/staking#readme",
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^1.0.2",
+    "@nomiclabs/hardhat-web3": "^2.0.0",
+    "hardhat": "^2.12.6",
+    "hardhat-gas-reporter": "^1.0.9",
+    "web3": "^1.8.1"
+  },
+  "dependencies": {
+    "@nomicfoundation/hardhat-network-helpers": "^1.0.7",
+    "@openzeppelin/contracts": "^4.8.1",
+    "dotenv": "^16.0.3"
+  }
+}
