@@ -25,7 +25,7 @@ contract Staking is Ownable {
 
     uint256 private totalStaked;
 
-    mapping(address => StakeInfo) private StakeInfos;
+    mapping(address => StakeInfo) private stakeInfos;
 
     event Staked(address indexed staker, uint256 amount, uint256 timestamp);
     event Unstaked(address indexed staker, uint256 amount, uint256 timestamp);
@@ -43,7 +43,7 @@ contract Staking is Ownable {
         _;
     }
 
-    function stake(uint256 _amount) amountMoreThenZero(_amount) external {
+    function stake(uint256 _amount) external amountMoreThenZero(_amount) {
         require(
             stakingToken.allowance(msg.sender, address(this)) >= _amount,
             "Token transfer not approved"
@@ -52,27 +52,32 @@ contract Staking is Ownable {
         stakingToken.transferFrom(msg.sender, address(this), _amount);
 
         totalStaked += _amount;
-        StakeInfos[msg.sender].stakerTotalAmount += _amount;
-        StakeInfos[msg.sender].stakeTimestamp = block.timestamp;
+        stakeInfos[msg.sender].stakerTotalAmount += _amount;
+        stakeInfos[msg.sender].stakeTimestamp = block.timestamp;
 
         emit Staked(msg.sender, _amount, block.timestamp);
     }
 
-    function unstake(uint256 _amount) amountMoreThenZero(_amount) external {
-        require(_amount <= StakeInfos[msg.sender].stakerTotalAmount, "Requested too much");
+    function unstake(uint256 _amount) public amountMoreThenZero(_amount) {
+        require(_amount <= stakeInfos[msg.sender].stakerTotalAmount, "Requested too much");
 
         totalStaked -= _amount;
-        StakeInfos[msg.sender].stakerTotalAmount -= _amount;
+        stakeInfos[msg.sender].stakerTotalAmount -= _amount;
 
         stakingToken.transfer(msg.sender, _amount);
 
         emit Unstaked(msg.sender, _amount, block.timestamp);
     }
 
-    function recalcReward(address stakeholder) public {
-        uint256 startTs = (StakeInfos[stakeholder].lastRewardTimestamp != 0) ?
-            StakeInfos[stakeholder].lastRewardTimestamp :
-            StakeInfos[stakeholder].stakeTimestamp;
+    function exit() external {
+        unstake(stakeInfos[msg.sender].stakerTotalAmount);
+        getReward();
+    }
+
+    function recalcReward(address stakeholder) external {
+        uint256 startTs = (stakeInfos[stakeholder].lastRewardTimestamp != 0) ?
+            stakeInfos[stakeholder].lastRewardTimestamp :
+            stakeInfos[stakeholder].stakeTimestamp;
         
         uint256 stakePeriod = _getPeriod(startTs);
         uint256 currentPeriod = _getPeriod(block.timestamp);
@@ -88,27 +93,27 @@ contract Staking is Ownable {
             startTs = periodEndTimestamp;
         }
 
-        StakeInfos[stakeholder].pendingReward = totalReward;
+        stakeInfos[stakeholder].pendingReward = totalReward;
     }
 
-    function getReward() external {
-        uint256 startTs = (StakeInfos[msg.sender].lastRewardTimestamp != 0) ?
-            StakeInfos[msg.sender].lastRewardTimestamp :
-            StakeInfos[msg.sender].stakeTimestamp;
+    function getReward() public {
+        uint256 startTs = (stakeInfos[msg.sender].lastRewardTimestamp != 0) ?
+            stakeInfos[msg.sender].lastRewardTimestamp :
+            stakeInfos[msg.sender].stakeTimestamp;
 
         uint256 stakePeriod = _getPeriod(startTs);
         uint256 currentPeriod = _getPeriod(block.timestamp);
         
         require(stakePeriod < currentPeriod, "Too early");
 
-        uint256 pendingReward = StakeInfos[msg.sender].pendingReward;
+        uint256 pendingReward = stakeInfos[msg.sender].pendingReward;
 
         require(pendingReward > 0, "No Pending Rewards Yet");
         require(rewardToken.balanceOf(address(this)) >= pendingReward, "Low contract balance");
 
-        StakeInfos[msg.sender].pendingReward = 0;
-        StakeInfos[msg.sender].receivedReward = pendingReward;
-        StakeInfos[msg.sender].lastRewardTimestamp = block.timestamp;
+        stakeInfos[msg.sender].pendingReward = 0;
+        stakeInfos[msg.sender].receivedReward = pendingReward;
+        stakeInfos[msg.sender].lastRewardTimestamp = block.timestamp;
 
         rewardToken.transfer(msg.sender, pendingReward);
 
@@ -131,15 +136,15 @@ contract Staking is Ownable {
     }
 
     function getStaked() external view returns (uint256) {
-        return StakeInfos[msg.sender].stakerTotalAmount;
+        return stakeInfos[msg.sender].stakerTotalAmount;
     }
 
     function getPendingReward() external view returns (uint256) {
-        return StakeInfos[msg.sender].pendingReward;
+        return stakeInfos[msg.sender].pendingReward;
     }
 
     function getReceivedReward() external view returns (uint256) {
-        return StakeInfos[msg.sender].receivedReward;
+        return stakeInfos[msg.sender].receivedReward;
     }
 
     function _getPeriod(uint256 timestamp) private view returns (uint256) {
@@ -155,7 +160,7 @@ contract Staking is Ownable {
     }
 
     function _calcRewardForPeriod(address stakeholder, uint256 startTs, uint256 endTs) private view returns (uint256) {
-        uint256 staked = StakeInfos[stakeholder].stakerTotalAmount;
+        uint256 staked = stakeInfos[stakeholder].stakerTotalAmount;
         uint256 stakedPercent = (staked * 10_000) / totalStaked;
 
         return (rewardPerSecond * (endTs - startTs)) * stakedPercent / 10_000;

@@ -191,4 +191,20 @@ describe("Staking", function () {
     expect(await staking.connect(user2).getPendingReward()).equals(user2PendingReward);
     expect(await staking.connect(user3).getPendingReward()).equals(user3PendingReward);
   });
+  it("Exit (User 3)", async () => {
+
+    const stakedBefore = await staking.connect(user3).getStaked();
+    const pendingRewardBefore = await staking.connect(user3).getPendingReward();
+
+    await staking.connect(user3).exit();
+
+    const stakedAfter = await staking.connect(user3).getStaked();
+    const pendingRewardAfter = await staking.connect(user3).getPendingReward();
+
+    expect(stakedBefore).gt(0);
+    expect(pendingRewardBefore).gt(0);
+
+    expect(stakedAfter).equals(0);
+    expect(pendingRewardAfter).equals(0);
+  });
 })
